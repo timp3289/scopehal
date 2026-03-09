@@ -85,7 +85,7 @@ unsigned int AgilentMultimeter::GetMeasurementTypes()
 
 unsigned int AgilentMultimeter::GetSecondaryMeasurementTypes()
 {
-	switch(m_mode)
+	/*switch(m_mode)
 	{
 		case AC_RMS_AMPLITUDE:
 		case AC_CURRENT:
@@ -93,7 +93,8 @@ unsigned int AgilentMultimeter::GetSecondaryMeasurementTypes()
 
 		default:
 			return 0;
-	}
+	}*/
+    return 0;
 }
 
 uint32_t AgilentMultimeter::GetInstrumentTypesForChannel([[maybe_unused]] size_t i) const
@@ -185,6 +186,7 @@ double AgilentMultimeter::GetSecondaryMeterValue()
     	os >> result;
 		return result;
 	}*/
+    return 0.0;
 }
 
 int AgilentMultimeter::GetCurrentMeterChannel()
