@@ -201,7 +201,7 @@ Multimeter::MeasurementTypes AgilentMultimeter::GetMeterMode()
 	// "VOLT +1.000000E+02,+1.000000E-04"
 	// mode, range, resolution
 
-	string del = ' ';
+	string del = " ";
 	
 	// Split with the space to get a string with the mode
 	if(~s_modeReply.empty()){
