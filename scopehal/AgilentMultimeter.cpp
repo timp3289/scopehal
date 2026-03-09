@@ -204,10 +204,10 @@ Multimeter::MeasurementTypes AgilentMultimeter::GetMeterMode()
 	string del = " ";
 	
 	// Split with the space to get a string with the mode
-	if(~s_modeReply.empty()){
+	if(!s_modeReply.empty()){
 		auto pos = s_modeReply.find(del);
 		if(pos!=std::string::npos){
-			auto smode = pos.substr(0,pos);
+			auto smode = s_modeReply.substr(0,pos);
 			
 			if(smode == "VOLT:AC")
 				m_mode = AC_RMS_AMPLITUDE;
