@@ -32,11 +32,25 @@
 	@author Tim Pattinson
 	@brief Agilent 34401A multimeter driver
  */
+#include <string>
+
 #include "scopehal.h"
 #include "AgilentMultimeter.h"
 #include "MultimeterChannel.h"
 
 using namespace std;
+
+// Implemented
+// Basic measurements
+
+
+// Not implemented
+// Triggering
+// Sampling multiple values
+// Period, 4W ohms
+// Configuring digits or NPLC
+// Configuring bandwidth
+// Configuring input impedance
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Construction / destruction
@@ -53,11 +67,21 @@ AgilentMultimeter::AgilentMultimeter(SCPITransport* transport)
 	//Create our single channel
 	m_channels.push_back(new MultimeterChannel(this, "VIN", "#ffff00", 0));
 
+	// Need to be in remote mode to do anything useful
+	m_transport->SendCommand("SYST:REM");
+
+	// Clear errors
+	// TODO make this smarter
+	m_transport->SendCommandQueuedWithReply("SYST:ERR?");
+	m_transport->SendCommandQueuedWithReply("SYST:ERR?");
+	m_transport->SendCommandQueuedWithReply("SYST:ERR?");
+
 	// Set speed to high
 	//m_transport->SendCommandQueued("RATE F");
 
 	// Rate limit to 65 Hz (which is the highest measurement supported by the metter)
-	//m_transport->EnableRateLimiting(chrono::milliseconds(1000/65));
+	// TODO: work out actual limit for this meter - copied from Owon
+	m_transport->EnableRateLimiting(chrono::milliseconds(1000/65));
 }
 
 AgilentMultimeter::~AgilentMultimeter()
@@ -102,24 +126,22 @@ uint32_t AgilentMultimeter::GetInstrumentTypesForChannel([[maybe_unused]] size_t
 
 int AgilentMultimeter::GetMeterDigits()
 {
-	return 5;
+	return 7;
 }
+
 
 bool AgilentMultimeter::GetMeterAutoRange()
 {
-	//string reply = m_transport->SendCommandQueuedWithReply("AUTO?");
-	//return (Trim(reply) == "1");
+	// TODO
+	// Auto-range is per measurement type
+
     return false;
 }
 
 void AgilentMultimeter::SetMeterAutoRange(bool enable)
 {
-	/*if(enable)
-		m_transport->SendCommandImmediate("AUTO");
-	else
-	{
-		m_transport->SendCommandImmediate("RANGE 1");
-	}*/
+	//TODO
+	// Auto-range is per measurement type
 }
 
 void AgilentMultimeter::StartMeter()
@@ -138,7 +160,7 @@ double AgilentMultimeter::GetMeterValue()
 	while(true)
 	{
 		value = Trim(m_transport->SendCommandQueuedWithReply("READ?"));
-		if(value.empty()||(value.find("NON")!=std::string::npos))
+		if(value.empty())
 		{
 			LogWarning("Failed to read value: got '%s'\n",value.c_str());
 			continue;
@@ -171,59 +193,64 @@ void AgilentMultimeter::SetCurrentMeterChannel([[maybe_unused] ]int chan)
 
 Multimeter::MeasurementTypes AgilentMultimeter::GetMeterMode()
 {
-	/*if(m_modeValid)
-		return m_mode;
+	//TODO cache this
 
-	auto smode = TrimQuotes(Trim(m_transport->SendCommandQueuedWithReply("FUNC?")));
+	auto s_modeReply = TrimQuotes(Trim(m_transport->SendCommandQueuedWithReply("FUNC?")));
 
-	//Default to no alternate mode
-	m_secmode = NONE;
+	// We expect a reply like:
+	// "VOLT +1.000000E+02,+1.000000E-04"
+	// mode, range, resolution
+
+	string del = ' ';
+	
+	// Split with the space to get a string with the mode
+	if(~s_modeReply.empty()){
+		auto pos = s_modeReply.find(del);
+		if(pos!=std::string::npos){
+			auto smode = pos.substr(0,pos);
+			
+			if(smode == "VOLT:AC")
+				m_mode = AC_RMS_AMPLITUDE;
+			else if(smode == "VOLT")
+				m_mode = DC_VOLTAGE;
+			else if(smode == "CURR:AC")
+				m_mode = AC_CURRENT;
+			else if(smode == "CURR")
+				m_mode = DC_CURRENT;
+			else if(smode == "FREQ")
+				m_mode = FREQUENCY;
+			else if(smode == "CONT")
+				m_mode = CONTINUITY;
+			else if(smode == "DIOD")
+				m_mode = DIODE;
+			else if(smode == "RES")
+				m_mode = RESISTANCE;
+			//unknown, pick something
+			else
+			{
+				LogWarning("Unknow mode = '%s'", smode.c_str());
+				m_mode = NONE;
+			}
+
+			return m_mode;
 
 
-	if(smode == "VOLT AC")
-		m_mode = AC_RMS_AMPLITUDE;
-	else if(smode == "VOLT")
-		m_mode = DC_VOLTAGE;
-	else if(smode == "CURR AC")
-		m_mode = AC_CURRENT;
-	else if(smode == "CURR")
-		m_mode = DC_CURRENT;
-	else if(smode == "FREQ")
-		m_mode = FREQUENCY;
-	else if(smode == "FREQ")
-		m_mode = FREQUENCY;
-	else if(smode == "CAP")
-		m_mode = CAPACITANCE;
-	else if(smode == "CONT")
-		m_mode = CONTINUITY;
-	else if(smode == "DIOD")
-		m_mode = DIODE;
-	else if(smode == "RES")
-		m_mode = RESISTANCE;
-	else if(smode == "TEMP")
-		m_mode = TEMPERATURE;
-
-
-	//unknown, pick something
-	else
-	{
-		LogWarning("Unknow mode = '%s', defaulting to DC Voltage\n", smode.c_str());
-		m_mode = DC_VOLTAGE;
+		}else{
+			// Could not find a space in the reply
+			m_mode = NONE;
+			LogWarning("Failed to parse status = '%s'", s_modeReply.c_str());
+		}
+		
+	}else{
+		// bad SCPI reply or no SCPI reply
+		m_mode = NONE;
 	}
+	
+	return m_mode;
 
-	// Get secondary measure
-	smode = TrimQuotes(Trim(m_transport->SendCommandQueuedWithReply("FUNC2?")));
-
-	if(smode.find("FREQ")!=std::string::npos)
-		m_secmode = FREQUENCY;
-	else
-		m_secmode = NONE;
-
-
-	m_modeValid = true;
-	m_secmodeValid = true;
-	return m_mode;*/
-    return Multimeter::MeasurementTypes::NONE;
+	//TODO caching
+	//m_modeValid = true;
+	
 }
 
 Multimeter::MeasurementTypes AgilentMultimeter::GetSecondaryMeterMode()
@@ -234,8 +261,6 @@ Multimeter::MeasurementTypes AgilentMultimeter::GetSecondaryMeterMode()
 
 void AgilentMultimeter::SetMeterMode(Multimeter::MeasurementTypes type)
 {
-	/*m_secmode = NONE;
-
 	switch(type)
 	{
 		case DC_VOLTAGE:
@@ -258,10 +283,6 @@ void AgilentMultimeter::SetMeterMode(Multimeter::MeasurementTypes type)
 			m_transport->SendCommandImmediate("CONF:RES");
 			break;
 
-		case CAPACITANCE:
-			m_transport->SendCommandImmediate("CONF:CAP");
-			break;
-
 		case FREQUENCY:
 			m_transport->SendCommandImmediate("CONF:FREQ");
 			break;
@@ -274,39 +295,18 @@ void AgilentMultimeter::SetMeterMode(Multimeter::MeasurementTypes type)
 			m_transport->SendCommandImmediate("CONF:CONT");
 			break;
 
-		case TEMPERATURE:
-			m_transport->SendCommandImmediate("CONF:TEMP");
-			break;
-
 		//whatever it is, not supported
 		default:
+			LogWarning("Unexpected multimeter mode = '%d'", type);
 			return;
 	}
 
 	m_mode = type;
-	if(m_mode != AC_CURRENT && m_mode != AC_RMS_AMPLITUDE)
-		m_secmode = NONE;*/
+
 }
 
 void AgilentMultimeter::SetSecondaryMeterMode(Multimeter::MeasurementTypes type)
 {
-	/*
-    switch(type)
-	{
-		case FREQUENCY:
-			m_transport->SendCommandImmediate("FUNC2 \"FREQ\"");
-			break;
-
-		case NONE:
-			m_transport->SendCommandImmediate("FUNC2 \"NONe\"");
-			break;
-
-		//not supported
-		default:
-			return;
-	}
-
-	m_secmode = type;
-	m_secmodeValid = true;
-    */
+	// 34401A has no secondary measurement capability
+	return;
 }
