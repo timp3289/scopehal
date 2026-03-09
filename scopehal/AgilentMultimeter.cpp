@@ -44,8 +44,8 @@ using namespace std;
 AgilentMultimeter::AgilentMultimeter(SCPITransport* transport)
 	: SCPIDevice(transport)
 	, SCPIInstrument(transport)
-	, m_modeValid(false)
-	, m_secmodeValid(false)
+//	, m_modeValid(false)
+//	, m_secmodeValid(false)
 {
 	//prefetch operating mode
 	GetMeterMode();
