@@ -80,20 +80,15 @@ unsigned int AgilentMultimeter::GetInstrumentTypes() const
 
 unsigned int AgilentMultimeter::GetMeasurementTypes()
 {
-	return AC_RMS_AMPLITUDE | DC_VOLTAGE | DC_CURRENT | AC_CURRENT | TEMPERATURE | CAPACITANCE | RESISTANCE | CONTINUITY | DIODE | FREQUENCY;
+	return AC_RMS_AMPLITUDE | DC_VOLTAGE | DC_CURRENT | AC_CURRENT | RESISTANCE | CONTINUITY | DIODE | FREQUENCY;
+	// TODO: PERIOD when supported by Multimeter class
+	// TODO: OHMS 4W
+	// TODO: DCV RATIO when supported
 }
 
 unsigned int AgilentMultimeter::GetSecondaryMeasurementTypes()
 {
-	/*switch(m_mode)
-	{
-		case AC_RMS_AMPLITUDE:
-		case AC_CURRENT:
-			return FREQUENCY;
-
-		default:
-			return 0;
-	}*/
+	// 34401A has no secondary measurement capability
     return 0;
 }
 
@@ -139,10 +134,10 @@ void AgilentMultimeter::StopMeter()
 
 double AgilentMultimeter::GetMeterValue()
 {
-	/*string value;
+	string value;
 	while(true)
 	{
-		value = Trim(m_transport->SendCommandQueuedWithReply("MEAS1?"));
+		value = Trim(m_transport->SendCommandQueuedWithReply("READ?"));
 		if(value.empty()||(value.find("NON")!=std::string::npos))
 		{
 			LogWarning("Failed to read value: got '%s'\n",value.c_str());
@@ -155,37 +150,12 @@ double AgilentMultimeter::GetMeterValue()
     	double result;
     	os >> result;
 		return result;
-	}*/
-    return 123.45;
+	}
 }
 
 double AgilentMultimeter::GetSecondaryMeterValue()
 {
-	/*if(GetSecondaryMeterMode()==NONE)
-		return 0;
-	//If we have a secondary value, this gets it
-	//If no secondary mode configured, returns primary value
-	string value;
-	while(true)
-	{
-		value = Trim(m_transport->SendCommandQueuedWithReply("MEAS2?"));
-		if((value.find("NON")!=std::string::npos))
-		{
-			// No secondary reading at this point
-			return 0;
-		}
-		else if(value == "1E+9")
-			return std::numeric_limits<double>::max(); // Overload
-		if(value.empty())
-		{
-			LogWarning("Failed to read value: got '%s'\n",value.c_str());
-			continue;
-		}
-		istringstream os(value);
-    	double result;
-    	os >> result;
-		return result;
-	}*/
+	// 34401A has no secondary measurement capability
     return 0.0;
 }
 
@@ -258,11 +228,7 @@ Multimeter::MeasurementTypes AgilentMultimeter::GetMeterMode()
 
 Multimeter::MeasurementTypes AgilentMultimeter::GetSecondaryMeterMode()
 {
-	/*if(m_secmodeValid)
-		return m_secmode;
-
-	GetMeterMode();
-	return m_secmode;*/
+	// 34401A has no secondary measurement capability
     return Multimeter::MeasurementTypes::NONE;
 }
 
