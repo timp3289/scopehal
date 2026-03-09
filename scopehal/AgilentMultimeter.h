@@ -75,7 +75,8 @@ public:
 	virtual double GetMeterValue() override;
 	virtual double GetSecondaryMeterValue() override;
 
-//protected:
+protected:
+	MeasurementTypes m_mode;
 
 public:
     static std::string GetDriverNameInternal();
