@@ -194,8 +194,9 @@ void AgilentMultimeter::SetCurrentMeterChannel([[maybe_unused] ]int chan)
 Multimeter::MeasurementTypes AgilentMultimeter::GetMeterMode()
 {
 	//TODO cache this
-
-	auto s_modeReply = TrimQuotes(Trim(m_transport->SendCommandQueuedWithReply("FUNC?")));
+	/*
+	auto s_modeReplyRaw = m_transport->SendCommandQueuedWithReply("FUNC?");
+	auto s_modeReply = TrimQuotes(Trim(s_modeReplyRaw));
 
 	// We expect a reply like:
 	// "VOLT +1.000000E+02,+1.000000E-04"
@@ -228,7 +229,7 @@ Multimeter::MeasurementTypes AgilentMultimeter::GetMeterMode()
 			//unknown, pick something
 			else
 			{
-				LogWarning("Unknow mode = '%s'", smode.c_str());
+				LogWarning("Unknow mode = '%s'\n", smode.c_str());
 				m_mode = NONE;
 			}
 
@@ -238,7 +239,7 @@ Multimeter::MeasurementTypes AgilentMultimeter::GetMeterMode()
 		}else{
 			// Could not find a space in the reply
 			m_mode = NONE;
-			LogWarning("Failed to parse status = '%s'", s_modeReply.c_str());
+			LogWarning("Failed to parse status = '%s'\n", s_modeReply.c_str());
 		}
 		
 	}else{
@@ -249,7 +250,9 @@ Multimeter::MeasurementTypes AgilentMultimeter::GetMeterMode()
 	return m_mode;
 
 	//TODO caching
-	//m_modeValid = true;
+	//m_modeValid = true;*/
+
+	return NONE;
 	
 }
 
@@ -261,7 +264,7 @@ Multimeter::MeasurementTypes AgilentMultimeter::GetSecondaryMeterMode()
 
 void AgilentMultimeter::SetMeterMode(Multimeter::MeasurementTypes type)
 {
-	switch(type)
+	/*switch(type)
 	{
 		case DC_VOLTAGE:
 			m_transport->SendCommandImmediate("CONF:VOLT:DC");
@@ -301,7 +304,7 @@ void AgilentMultimeter::SetMeterMode(Multimeter::MeasurementTypes type)
 			return;
 	}
 
-	m_mode = type;
+	m_mode = type;*/
 
 }
 
