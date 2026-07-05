@@ -220,6 +220,7 @@ set(SCOPEHAL_SOURCES
 	RidenPowerSupply.cpp
 	SinilinkPowerSupply.cpp
 	KuaiquPowerSupply.cpp
+	SoundCardOscilloscope.cpp
 
 	StandardColors.cpp
 	Filter.cpp
@@ -271,6 +272,7 @@ target_link_libraries(scopehal
 	Vulkan::Headers
 	glslang::glslang
 	glfw
+	portaudio
 	${WIN_LIBS}
 	)
 

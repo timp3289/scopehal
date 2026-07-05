@@ -68,12 +68,14 @@ SoundCardOscilloscope::SoundCardOscilloscope(SCPITransport* transport)
 
 	PaError pa_err = Pa_Initialize();
 	if(pa_err==paNoError){
-		LogDebug("SoundCardOscilloscope: PulseAudio initialised\n");
+		LogDebug("SoundCardOscilloscope: PortAudio initialised\n");
 	}else{
-		LogError("SoundCardOscilloscope: PulseAudio init failed with error: %d\n",pa_err);
+		LogError("SoundCardOscilloscope: PortAudio init failed with error: %d\n",pa_err);
 	}
 
-	int numPADevices = Pa_GetDeviceCount();
+	
+	PaDeviceIndex numPADevices = Pa_GetDeviceCount();
+	PaHostApiIndex nApiAvailable = Pa_GetHostApiCount();
 	
 	LogDebug("SoundCardOscilloscope: enumerating %d devices\n",numPADevices);
 
@@ -83,7 +85,10 @@ SoundCardOscilloscope::SoundCardOscilloscope(SCPITransport* transport)
 
 	for(int i = 0; i<numPADevices;i++){
 		PaDeviceInfo* pa_dev = (PaDeviceInfo*)Pa_GetDeviceInfo(i);
-
+		if(pa_dev == nullptr){
+			discarded++;
+			continue;
+		}
 		if(pa_dev->maxInputChannels > 0){
 			// only keep devices with inputs in our list
 			pa_devices.push_back(pa_dev);
@@ -100,8 +105,47 @@ SoundCardOscilloscope::SoundCardOscilloscope(SCPITransport* transport)
 		
 		LogDebug("PA device: %s\n\tInput Channels: %d\n\tdefaultLowOutputLatency: %f\n\tdefaultHighInputLatency: %f\n\tdefaultSampleRate %f\n",
 			device->name,device->maxInputChannels,device->defaultLowInputLatency,device->defaultHighInputLatency,device->defaultSampleRate);
+	
+		if(device->hostApi > 0 && device->hostApi < nApiAvailable){
+			LogDebug("\tAPI: %s\n",Pa_GetHostApiInfo(device->hostApi)->name);
+		}
 	}
 
+	
+
+	// This doesn't work. Pa_HostApiDeviceIndexToDeviceIndex() seems to return invalid indices
+	/*
+	PaHostApiIndex nApiAvailable = Pa_GetHostApiCount();
+	if(nApiAvailable == 0){
+		LogError("SoundCardOscilloscope: no APIs available\n");
+		return;
+	}
+
+	LogDebug("SoundCardOscillloscope: enumerating %d APIs. \n",nApiAvailable);
+	for(int i = 0; i<nApiAvailable;i++){
+		auto ApiInfo = Pa_GetHostApiInfo(i);
+		LogDebug("PA API: %s\n\t has %d devices, default input device: %d\n",ApiInfo->name,ApiInfo->deviceCount,ApiInfo->defaultInputDevice);
+
+		// enumerate the devices in this API
+		for(int ii = 0; ii<ApiInfo->deviceCount;ii++){
+			// from the index into the API's devices, get the global index
+			PaDeviceIndex pa_idx = Pa_HostApiDeviceIndexToDeviceIndex(ApiInfo->type,ii);
+
+			PaDeviceInfo* pa_dev = (PaDeviceInfo*)Pa_GetDeviceInfo(pa_idx);
+			
+			if(pa_dev->maxInputChannels > 0){
+				LogDebug("\tPA device (API idx %d): %s\n\tInput Channels: %d\n\t\tdefaultLowOutputLatency: %f\n\t\tdefaultHighInputLatency: %f\n\t\tdefaultSampleRate %f\n",
+					ii,pa_dev->name,pa_dev->maxInputChannels,pa_dev->defaultLowInputLatency,pa_dev->defaultHighInputLatency,pa_dev->defaultSampleRate);
+			}else{
+				LogDebug("\tPA device (API idx %d) skipped due to having no inputs\n",ii);
+			}
+
+
+
+		}
+	}
+	*/
+ 
 
 	//Create a bunch of channels
 	static const char* colors[8] =
